@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
 const morgan = require("morgan");
+const Person = require("./models/person");
 
 app.use(express.json());
 
@@ -23,7 +24,7 @@ app.use(
   })
 );
 
-let data = [
+/*let data = [
   {
     id: 1,
     name: "Arto Hellas",
@@ -50,6 +51,7 @@ let data = [
     number: "123456789",
   },
 ];
+*/
 
 app.get("/info", (request, response) => {
   response.send(
@@ -60,18 +62,25 @@ app.get("/info", (request, response) => {
   );
 });
 
-app.get("/api/persons", (request, response) => {
-  response.json(data);
+app.get("/api/people", (request, response) => {
+  Person.find({}).then((people) => {
+    response.json(people);
+  });
 });
 
-app.get("/api/persons/:id", (request, response) => {
-  const id = Number(request.params.id);
-  const person = data.find((person) => person.id === id);
-  if (person) {
-    response.json(person);
-  } else {
-    response.status(404).end();
-  }
+app.get("/api/people/:id", (request, response) => {
+  Person.findById(request.params.id)
+    .then((person) => {
+      if (person) {
+        response.json(person);
+      } else {
+        response.status(404).end();
+      }
+    })
+    .catch((error) => {
+      console.log(error);
+      response.status(400).send({ error: "malformatted id" });
+    });
 });
 
 app.delete("/api/persons/:id", (request, response) => {
@@ -85,14 +94,13 @@ const generateId = () => {
   return Math.floor(Math.random() * 999999999999);
 };
 
-app.post("/api/persons/", (request, response) => {
+app.post("/api/people/", (request, response) => {
   const body = request.body;
-
-  if (!body.name) {
+  /*if (body.name === undefined) {
     return response.status(400).json({
       error: "name is missing",
     });
-  } else if (!body.number) {
+  } else if (body.number === undefined) {
     return response.status(400).json({
       error: "number is missing",
     });
@@ -100,15 +108,19 @@ app.post("/api/persons/", (request, response) => {
     return response.status(409).json({
       error: "name must be unique",
     });
-  }
-  const person = {
-    id: generateId(),
+  }*/
+  const person = new Person({
+    id: Math.floor(Math.random() * 999999999999),
     name: body.name,
     number: body.number,
-  };
+  });
 
-  data = data.concat(person);
-  response.json(person);
+  person.save().then((savedPerson) => {
+    response.json(savedPerson);
+  });
+
+  //data = data.concat(person);
+  //response.json(person);
 });
 
 const PORT = process.env.PORT || 3001;
